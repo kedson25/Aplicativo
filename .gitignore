@@ -37,3 +37,4 @@ yarn-error.*
 
 # Ignore firebase.js
 src/lib/firebase.js
+.env
