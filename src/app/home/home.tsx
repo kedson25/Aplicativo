@@ -3,35 +3,39 @@ import { useRouter } from 'expo-router';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../../lib/firebase';
-import { getDoc, doc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import Colors from '@/constants/Colors';
 import ProtectedRoute from '../../components/ProtectedRoute';
 
 const Home = () => {
     const [userName, setUserName] = useState('');
+    const [userRole, setUserRole] = useState('');
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
-        const fetchUserName = async () => {
-            try {
-                const user = auth.currentUser;
-                if (user) {
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists()) {
-                        setUserName(userDoc.data().name);
-                    } else {
-                        console.log('No such document!');
-                    }
+        const user = auth.currentUser;
+        if (user) {
+            const userDocRef = doc(db, 'users', user.uid);
+            const unsubscribe = onSnapshot(userDocRef, (doc) => {
+                if (doc.exists()) {
+                    const userData = doc.data();
+                    setUserName(userData.name);
+                    setUserRole(userData.isAdmin ? 'Admin' : 'User');
+                } else {
+                    console.log('No such document!');
                 }
-            } catch (error) {
-                console.error('Erro ao buscar dados do usuário:', error);
-            } finally {
                 setLoading(false);
-            }
-        };
+            }, (error) => {
+                console.error('Erro ao buscar dados do usuário:', error);
+                setLoading(false);
+            });
 
-        fetchUserName();
+            // Cleanup subscription on unmount
+            return () => unsubscribe();
+        } else {
+            setLoading(false);
+        }
     }, []);
 
     const handleLogout = async () => {
@@ -56,8 +60,12 @@ const Home = () => {
         <ProtectedRoute>
             <View style={styles.container}>
                 <Text style={styles.welcomeText}>Bem-vindo, {userName}!</Text>
+                <Text style={styles.roleText}>Papel: {userRole}</Text>
                 <Pressable style={styles.button} onPress={handleLogout}>
                     <Text style={styles.buttonText}>Deslogar</Text>
+                </Pressable>
+                <Pressable style={styles.button} onPress={() => router.push('home/chat')}>
+                    <Text style={styles.buttonText}>Ir para o Chat</Text>
                 </Pressable>
             </View>
         </ProtectedRoute>
@@ -78,6 +86,11 @@ const styles = StyleSheet.create({
         color: Colors.white,
         marginBottom: 20,
     },
+    roleText: {
+        fontSize: 18,
+        color: Colors.white,
+        marginBottom: 20,
+    },
     button: {
         backgroundColor: Colors.purple,
         borderRadius: 8,
@@ -86,6 +99,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         width: '100%',
         maxWidth: 200,
+        marginTop: 10,
     },
     buttonText: {
         color: Colors.white,

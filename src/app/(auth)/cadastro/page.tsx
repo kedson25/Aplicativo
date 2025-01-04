@@ -23,6 +23,7 @@ export default function Cadastro() {
             await setDoc(doc(db, 'users', user.uid), {
                 name,
                 email,
+                isAdmin: false, // Adiciona o campo isAdmin como false
             });
             console.log('Cadastro bem-sucedido!');
             router.push('home/home'); // Redireciona para a página "home"
@@ -95,8 +96,6 @@ export default function Cadastro() {
                     <Text style={{ color: Colors.purple }}>Faça login</Text>
                 </Link>
             </View>
-
-            
         </View>
     );
 }
